@@ -30,6 +30,7 @@ program.parse();
     const options = program.opts();
     const project_id = options.projectId || docker_names.getRandomName();
     const project_dir = path.resolve(os.homedir(), '.spinarch', project_id);
+    const is_persistent = !!options.projectId;
 
     if (options.numAccounts < 1) {
         console.error('Number of accounts to generate must be greater than 0');
@@ -154,10 +155,11 @@ program.parse();
         project_id: project_id,
         project_dir: project_dir,
         chain_id: options.chainId,
+        is_persistent: is_persistent,
         reset_state: options.resetState
     });
 
-    if (!options.projectId) {
+    if (!is_persistent) {
         logger.app(`Starting with temporary state... (set --project-id to enable persistent state)`);
         await docker.remove_volume();
     } else {

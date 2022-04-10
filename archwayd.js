@@ -12,7 +12,7 @@ class Archwayd {
         this.chain_id = options.chain_id;
         this.accounts = [];
 
-        this.is_persistent = this.project_id !== 'spinarch';
+        this.is_persistent = options.is_persistent;
         this.reset_state = options.reset_state;
 
         this.Docker = options.docker;
@@ -150,7 +150,9 @@ class Archwayd {
         logger.app(`Collecting gentxs...`);
         await docker.run(image, ['collect-gentxs'], undefined, docker_opts);
 
-        await fs.writeFile(path.resolve(this.project_dir, 'spinarch_accounts.json'), JSON.stringify(accounts));
+        if (this.is_persistent) {
+            await fs_async.writeFile(path.resolve(this.project_dir, 'spinarch_accounts.json'), JSON.stringify(accounts));
+        }
 
         this.display_accounts(accounts);
     }
