@@ -1,6 +1,6 @@
 {
     "name": "spinarch",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "🥬 Spin local Archway testnet for faster dApps development 🚀",
     "main": "index.js",
     "repository": {
