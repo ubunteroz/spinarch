@@ -128,9 +128,23 @@ program.parse();
         }
     };
 
+    logger.app('<Press s to enable/disable text selection>')
     logger.docker(await fs.readFile('./spinach.txt', 'utf8')); // 🥬
     box_bottom.focus();
     screen.render();
+
+    let is_selection_enabled = false;
+    screen.key('s', function() {
+        is_selection_enabled = !is_selection_enabled;
+
+        if (is_selection_enabled) {
+            screen.program.disableMouse();
+            logger.app('> Text selection is now enabled');
+        } else {
+            screen.program.enableMouse();
+            logger.app('> Text selection is now disabled');
+        }
+    });
 
     let is_stopped = false;
     screen.key(['C-c'], function() {
