@@ -160,17 +160,25 @@ class Archwayd {
             await docker.run(this.image, ['unsafe-reset-all'], undefined, this.docker_opts);
         }
 
-        logger.app(`Starting node... (press Ctrl-C to stop)`);
+        logger.app(`Starting node... (RPC on 127.0.0.1:26657)`);
+        logger.app(`<Press Ctrl-C to stop>`);
+        const docker_opts = {
+            ...this.docker_opts,
+            name: container_name,
+            NetworkDisabled: false
+        };
+        docker_opts.HostConfig.PortBindings = {
+            '26657/tcp': [{
+                HostIp: '127.0.0.1',
+                HostPort: '26657'
+            }]
+        };
         docker.run(this.image, [
                 'start',
                 '--moniker', this.project_id,
                 '--minimum-gas-prices', '0stake',
                 '--rpc.laddr', 'tcp://0.0.0.0:26657'
-            ], undefined, {
-                ...this.docker_opts,
-                name: container_name,
-                NetworkDisabled: false
-            }, function(err) {
+            ], undefined, docker_opts, function(err) {
                 if (err) throw err;
             })
             .on('stream', function(stream) {
