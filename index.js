@@ -1,4 +1,6 @@
-const fs = require('fs/promises');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
 const process = require('node:process');
 const blessed = require('blessed');
 const {
@@ -6,6 +8,7 @@ const {
     Option
 } = require('commander');
 const docker_names = require('docker-names');
+const mkdirp = require('mkdirp');
 const package = require('./package.json');
 
 program
@@ -18,13 +21,15 @@ program
     .addOption(new Option('--chain-id <string>', 'Chain ID').default('spinarch-1'))
     .addOption(new Option('--num-accounts <number>', 'Number of accounts to generate').default(10))
     .addOption(new Option('--balance <number>', 'Default balance of each generated account').default(1000000000))
-    .addOption(new Option('--update-image', 'Update the Archway image to latest version'));
+    .addOption(new Option('--update-image', 'Update the Archway image to latest version'))
+    .addOption(new Option('--reset-state', 'Reset the blockchain to the genesis state'));
 
 program.parse();
 
 (async function() {
     const options = program.opts();
     const project_id = options.projectId || docker_names.getRandomName();
+    const project_dir = path.resolve(os.homedir(), '.spinarch', project_id);
 
     if (options.numAccounts < 1) {
         console.error('Number of accounts to generate must be greater than 0');
@@ -120,7 +125,7 @@ program.parse();
     };
 
     logger.docker(await fs.readFile('./spinach.txt', 'utf8')); // 🥬
-    box_top_left.focus();
+    box_bottom.focus();
     screen.render();
 
     let is_stopped = false;
@@ -147,18 +152,24 @@ program.parse();
         logger: logger,
         docker: docker,
         project_id: project_id,
-        chain_id: options.chainId
+        project_dir: project_dir,
+        chain_id: options.chainId,
+        reset_state: options.resetState
     });
 
     if (!options.projectId) {
-        logger.app(`Starting a temporary state... (set --project-id to enable persistent state)`);
+        logger.app(`Starting with temporary state... (set --project-id to enable persistent state)`);
         await docker.remove_volume();
+    } else {
+        logger.app(`Starting with persistent state... (${project_dir})`);
+        await mkdirp(project_dir);
     }
 
     if (!(await docker.image_exists()) || options.updateImage) {
         await docker.pull_image();
     }
+    await archwayd.load_config();
     await archwayd.init_genesis();
     await archwayd.generate_accounts(options.numAccounts, options.balance);
-    archwayd.start_node();
+    await archwayd.start_node();
 })();

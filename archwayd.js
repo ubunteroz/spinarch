@@ -1,12 +1,18 @@
-const process = require('process');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const process = require('node:process');
 
 class Archwayd {
     constructor(options) {
         this.logger = options.logger;
 
         this.project_id = options.project_id;
+        this.project_dir = options.project_dir;
         this.chain_id = options.chain_id;
         this.accounts = [];
+
+        this.is_persistent = this.project_id !== 'spinarch';
+        this.reset_state = options.reset_state;
 
         this.Docker = options.docker;
         this.docker = this.Docker.docker;
@@ -23,6 +29,25 @@ class Archwayd {
                 }]
             }
         };
+
+        if (this.is_persistent) {
+            this.docker_opts.HostConfig.Mounts = [{
+                source: this.project_dir,
+                target: '/root/.archway',
+                type: 'bind'
+            }];
+        }
+    }
+
+    async load_config() {
+        if (!this.is_persistent) return;
+
+        try {
+            const accounts = JSON.parse(await fs.readFile(path.resolve(this.project_dir, 'spinarch_accounts.json')));
+            if (accounts.length > 0) this.accounts = accounts;
+        } catch (err) {
+            this.logger.app('Creating new config...');
+        }
     }
 
     async init_genesis() {
@@ -33,7 +58,29 @@ class Archwayd {
         ], undefined, this.docker_opts);
     }
 
+    display_accounts(accounts) {
+        const logger = this.logger;
+
+        logger.account('Available Accounts');
+        logger.account('==================');
+        accounts.forEach(function(account, idx) {
+            const validator_label = idx === 0 ? ' (validator)' : '';
+            logger.account(`(${account.name}) ${account.address} ${validator_label}`);
+        });
+
+        logger.account('\nMnemonics');
+        logger.account('==================');
+        accounts.forEach(function(account) {
+            logger.account(`(${account.name}) ${account.mnemonic}`);
+        });
+    }
+
     async generate_accounts(num_accounts, balance) {
+        if (this.accounts.length > 0) {
+            this.display_accounts(this.accounts);
+            return;
+        }
+
         const logger = this.logger;
         const docker = this.docker;
         const image = this.image;
@@ -97,25 +144,21 @@ class Archwayd {
         logger.app(`Collecting gentxs...`);
         await docker.run(image, ['collect-gentxs'], undefined, docker_opts);
 
-        logger.account('Available Accounts');
-        logger.account('==================');
-        accounts.forEach(function(account, idx) {
-            const validator_label = idx === 0 ? ' (validator)' : '';
-            logger.account(`(${account.name}) ${account.address} ${balance}stake${validator_label}`);
-        });
+        await fs.writeFile(path.resolve(this.project_dir, 'spinarch_accounts.json'), JSON.stringify(accounts));
 
-        logger.account('\nMnemonics');
-        logger.account('==================');
-        accounts.forEach(function(account) {
-            logger.account(`(${account.name}) ${account.mnemonic}`);
-        });
+        this.display_accounts(accounts);
     }
 
-    start_node() {
+    async start_node() {
         const logger = this.logger;
         const Docker = this.Docker;
         const docker = this.docker;
         const container_name = 'spinarch_archwayd';
+
+        if (this.is_persistent && this.reset_state) {
+            logger.app(`Resetting state to the genesis...`);
+            await docker.run(this.image, ['unsafe-reset-all'], undefined, this.docker_opts);
+        }
 
         logger.app(`Starting node... (press Ctrl-C to stop)`);
         docker.run(this.image, [
@@ -136,11 +179,12 @@ class Archwayd {
                 });
             });
 
+        const is_persistent = this.is_persistent;
         process.on('SIGINT', async function() {
             logger.app('SIGINT received, stopping node...');
             const container = docker.getContainer(container_name);
             await container.stop();
-            await Docker.remove_volume();
+            if (!is_persistent) await Docker.remove_volume();
             logger.app('Bye!');
         });
     }
