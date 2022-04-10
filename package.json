@@ -1,0 +1,26 @@
+{
+    "name": "spinarch",
+    "version": "0.0.1",
+    "description": "🥬 Spin local Archway testnet for faster dApps development 🚀",
+    "main": "index.js",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ubunteroz/spinarch.git"
+    },
+    "keywords": [
+        "archway",
+        "spinarch"
+    ],
+    "author": "Surya Handika Putratama",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/ubunteroz/spinarch/issues"
+    },
+    "homepage": "https://github.com/ubunteroz/spinarch#readme",
+    "dependencies": {
+        "blessed": "^0.1.81",
+        "commander": "^9.1.0",
+        "docker-names": "^1.2.1",
+        "dockerode": "^3.3.1"
+    }
+}
