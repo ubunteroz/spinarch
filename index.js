@@ -17,7 +17,8 @@ program
     .addOption(new Option('--project-id <string>', 'Your project ID'))
     .addOption(new Option('--chain-id <string>', 'Chain ID').default('spinarch-1'))
     .addOption(new Option('--num-accounts <number>', 'Number of accounts to generate').default(10))
-    .addOption(new Option('--balance <number>', 'Default balance of each generated account').default(1000000000));
+    .addOption(new Option('--balance <number>', 'Default balance of each generated account').default(1000000000))
+    .addOption(new Option('--update-image', 'Update the Archway image to latest version'));
 
 program.parse();
 
@@ -154,6 +155,9 @@ program.parse();
         await docker.remove_volume();
     }
 
+    if (!(await docker.image_exists()) || options.updateImage) {
+        await docker.pull_image();
+    }
     await archwayd.init_genesis();
     await archwayd.generate_accounts(options.numAccounts, options.balance);
     archwayd.start_node();

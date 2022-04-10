@@ -3,17 +3,26 @@ const dockerode = require('dockerode');
 class Docker {
     constructor(options) {
         this.logger = options.logger;
-
         this.docker = new dockerode();
-        this.image = 'archwaynetwork/archwayd';
+        this.image = 'archwaynetwork/archwayd:latest';
         this.volume = 'vol_spinarch';
     }
 
-    async pull() {
-        this.logger.app(`Pulling image ${this.image}...`);
+    async image_exists() {
+        const images = await this.docker.listImages();
+        const image_name = this.image;
+        const image = images.find(function(image) {
+            return image.RepoTags[0] === image_name;
+        });
+        return !!image;
+    }
 
+    async pull_image() {
+        const logger = this.logger;
         const docker = this.docker;
         const image = this.image;
+
+        this.logger.app(`Pulling image ${this.image}...`);
         return new Promise(function(resolve, reject) {
             return docker.pull(image, function(err, stream) {
                 if (err) {
@@ -21,7 +30,7 @@ class Docker {
                 }
 
                 stream.on('data', function(data) {
-                    logger.docker(data.status);
+                    logger.docker(data.toString());
                 });
 
                 stream.on('end', function() {
