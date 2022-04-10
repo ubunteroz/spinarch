@@ -8,8 +8,7 @@
         "url": "git+https://github.com/ubunteroz/spinarch.git"
     },
     "keywords": [
-        "archway",
-        "spinarch"
+        "archway", "spinarch"
     ],
     "author": "Surya Handika Putratama",
     "license": "MIT",
@@ -17,6 +16,7 @@
         "url": "https://github.com/ubunteroz/spinarch/issues"
     },
     "homepage": "https://github.com/ubunteroz/spinarch#readme",
+    "bin": "./index.js",
     "dependencies": {
         "blessed": "^0.1.81",
         "commander": "^9.1.0",
