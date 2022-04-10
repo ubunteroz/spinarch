@@ -41,6 +41,7 @@ program.parse();
     const screen = blessed.screen({
         smartCSR: true,
         dockBorders: true,
+        fullUnicode: true,
         title: `🥬 ${package.name} ${package.version} - ${project_id}`
     });
     // APPLICATION LOG
