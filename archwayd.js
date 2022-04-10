@@ -1,4 +1,5 @@
-const fs = require('node:fs/promises');
+const fs = require('node:fs');
+const fs_async = require('node:fs/promises');
 const path = require('node:path');
 const process = require('node:process');
 
@@ -43,7 +44,7 @@ class Archwayd {
         if (!this.is_persistent) return;
 
         try {
-            const accounts = JSON.parse(await fs.readFile(path.resolve(this.project_dir, 'spinarch_accounts.json')));
+            const accounts = JSON.parse(await fs_async.readFile(path.resolve(this.project_dir, 'spinarch_accounts.json')));
             if (accounts.length > 0) this.accounts = accounts;
         } catch (err) {
             this.logger.app('Creating new config...');
@@ -51,11 +52,16 @@ class Archwayd {
     }
 
     async init_genesis() {
-        this.logger.app(`Generating genesis file for ${this.chain_id}...`);
-        await this.docker.run(this.image, [
-            'init', this.project_id,
-            '--chain-id', this.chain_id
-        ], undefined, this.docker_opts);
+        try {
+            const genesis_path = path.resolve(this.project_dir, 'config', 'genesis.json');
+            await fs_async.access(genesis_path, fs.constants.F_OK);
+        } catch (err) {
+            this.logger.app(`Generating genesis file for ${this.chain_id}...`);
+            await this.docker.run(this.image, [
+                'init', this.project_id,
+                '--chain-id', this.chain_id
+            ], undefined, this.docker_opts);
+        }
     }
 
     display_accounts(accounts) {
