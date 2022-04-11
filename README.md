@@ -4,9 +4,15 @@
 
 SpinArch (c) 2022, Surya Handika Putratama <ubunteroz@gmail.com>
 
-Spin local Archway testnet for faster dApps development
+**Spin local Archway testnet for faster dApps development**
 
 ⚠️ This application is in early development
+
+### Features
+
+- Run persistent/non-persistent local testnet node
+- Generate pre-funded accounts
+- Take snapshot of running node
 
 ## Requirements
 
