@@ -30,7 +30,7 @@ program.parse();
 
 (async function() {
     const options = program.opts();
-    const project_id = options.projectId || docker_names.getRandomName();
+    const project_id = options.projectId ? options.projectId.replace(/[^0-9a-zA-Z-_]/g, '') : docker_names.getRandomName();
     const project_dir = path.resolve(os.homedir(), '.spinarch', project_id);
     const is_persistent = !!options.projectId;
 
