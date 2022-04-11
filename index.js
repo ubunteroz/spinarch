@@ -128,34 +128,6 @@ program.parse();
         }
     };
 
-    // Hotkey - text selection
-    let is_selection_enabled = false;
-    screen.key('s', function() {
-        is_selection_enabled = !is_selection_enabled;
-
-        if (is_selection_enabled) {
-            screen.program.disableMouse();
-            logger.app('> Text selection is now enabled');
-        } else {
-            screen.program.enableMouse();
-            logger.app('> Text selection is now disabled');
-        }
-    });
-    // Hotkey - terminate
-    let is_stopped = false;
-    screen.key(['C-c'], function() {
-        if (is_stopped) return;
-        process.kill(process.pid, 'SIGINT');
-        is_stopped = true;
-    });
-
-    // Handle SIGINT
-    process.on('SIGINT', function() {
-        setTimeout(function() {
-            screen.destroy();
-        }, 2000);
-    });
-
     logger.app('<Press S to toggle text selection>');
     logger.docker(await fs.readFile('./spinach.txt', 'utf8')); // 🥬
     box_bottom.focus();
@@ -178,6 +150,51 @@ program.parse();
         reset_state: options.resetState
     });
 
+    // Hotkey - text selection
+    let is_selection_enabled = false;
+    screen.key('s', function() {
+        is_selection_enabled = !is_selection_enabled;
+
+        if (is_selection_enabled) {
+            screen.program.disableMouse();
+            logger.app('> Text selection is now enabled');
+        } else {
+            screen.program.enableMouse();
+            logger.app('> Text selection is now disabled');
+        }
+    });
+
+    // Hotkey - snapshot
+    let is_stopping = false;
+    let is_snapshotting = false;
+    screen.key(['C-s'], async function() {
+        if (is_snapshotting || is_stopping) return;
+        is_snapshotting = true;
+        await archwayd.snapshot();
+        is_snapshotting = false;
+    });
+
+    // Hotkey - terminate
+    screen.key(['C-c'], function() {
+        if (is_snapshotting || is_stopping) return;
+        is_stopping = true;
+        process.kill(process.pid, 'SIGINT');
+    });
+
+    // Handle termination
+    process.on('SIGINT', async function() {
+        try {
+            logger.app('Stopping...');
+            await archwayd.stop_node();
+        } catch (err) {
+            // Ignore
+        }
+
+        screen.destroy();
+        process.exit(0);
+    });
+
+    // Application flow
     if (!is_persistent) {
         logger.app(`Starting with temporary state... (set --project-id to enable persistent state)`);
         await docker.remove_volume();

@@ -1,7 +1,8 @@
 const fs = require('node:fs');
 const fs_async = require('node:fs/promises');
 const path = require('node:path');
-const process = require('node:process');
+const date_fns = require('date-fns');
+const mkdirp = require('mkdirp');
 
 class Archwayd {
     constructor(options) {
@@ -159,7 +160,6 @@ class Archwayd {
 
     async start_node() {
         const logger = this.logger;
-        const Docker = this.Docker;
         const docker = this.docker;
         const container_name = 'spinarch_archwayd';
 
@@ -169,7 +169,6 @@ class Archwayd {
         }
 
         logger.app(`Starting node... (RPC on 127.0.0.1:26657)`);
-        logger.app(`<Press Ctrl-C to stop>`);
         const docker_opts = {
             ...this.docker_opts,
             name: container_name,
@@ -195,14 +194,65 @@ class Archwayd {
                 });
             });
 
-        const is_persistent = this.is_persistent;
-        process.on('SIGINT', async function() {
-            logger.app('SIGINT received, stopping node...');
-            const container = docker.getContainer(container_name);
-            await container.stop();
-            if (!is_persistent) await Docker.remove_volume();
-            logger.app('Bye!');
-        });
+        if (this.is_persistent) {
+            logger.app('<Press Ctrl-S to take snapshot, Ctrl-C to stop node>');
+        } else {
+            logger.app('<Press Ctrl-C to stop node>');
+        }
+    }
+
+    async stop_node() {
+        const container = this.docker.getContainer('spinarch_archwayd');
+        await container.stop();
+        if (!this.is_persistent) await this.Docker.remove_volume();
+    }
+
+    async snapshot() {
+        if (!this.is_persistent) return;
+
+        try {
+            await this.stop_node();
+
+            const snapshot_path = path.resolve(this.project_dir, '..', '.snapshots');
+            const snapshot_name = `${this.project_id}_${date_fns.format(new Date(), 'yyyy-MM-dd_HHmmss')}`;
+            await mkdirp(snapshot_path);
+
+            const docker = this.docker;
+            const logger = this.logger;
+            const project_dir = this.project_dir;
+            await new Promise(function(resolve, reject) {
+                docker.run('alpine:latest', [
+                        'tar', 'cvf', `/ss/${snapshot_name}.tar`, '/state'
+                    ], undefined, {
+                        NetworkDisabled: true,
+                        HostConfig: {
+                            AutoRemove: true,
+                            Mounts: [{
+                                source: snapshot_path,
+                                target: '/ss',
+                                type: 'bind'
+                            }, {
+                                source: project_dir,
+                                target: '/state',
+                                type: 'bind'
+                            }]
+                        }
+                    }, function(err) {
+                        if (err) return reject(err);
+                        resolve();
+                    })
+                    .on('stream', function(stream) {
+                        stream.on('data', function(data) {
+                            logger.docker(data.toString());
+                        });
+                    });
+            });
+            this.logger.app(`\nSnapshot saved to ${snapshot_path}/${snapshot_name}.tar\n`);
+        } catch (err) {
+            this.logger.app('Failed to take snapshot');
+        }
+
+        await this.start_node(); // Resume node
     }
 }
 
