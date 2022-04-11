@@ -190,7 +190,7 @@ class Archwayd {
             })
             .on('stream', function(stream) {
                 stream.on('data', function(data) {
-                    logger.docker(data.toString());
+                    logger.docker(data.toString().trim());
                 });
             });
 
@@ -243,7 +243,7 @@ class Archwayd {
                     })
                     .on('stream', function(stream) {
                         stream.on('data', function(data) {
-                            logger.docker(data.toString());
+                            logger.docker(data.toString().trim());
                         });
                     });
             });
