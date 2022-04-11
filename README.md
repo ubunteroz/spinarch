@@ -16,7 +16,7 @@ SpinArch (c) 2022, Surya Handika Putratama <ubunteroz@gmail.com>
 
 ## Requirements
 
-- Linux/macOS (not tested on Windows yet)
+- Linux/macOS with x86_64 CPU (not tested on Windows yet). It runs fine on M1 Mac, but Wasm contract feature is not supported because of missing AVX instruction needed by Wasmer.
 - Node.js (>= 16) and NPM
 - Docker
 
@@ -82,4 +82,27 @@ By default, SpinArch will generate 10 prefunded accounts. You can generate an N 
 
 ```shell
 spinarch --num-accounts 5 --balance 10000000
+```
+
+## Troubleshoot
+
+### Contract size exceeds limit
+
+By default, Wasm code size is limited to 1228800 bytes (~1.2 mbytes). To change this, you need to run a persistent project (with `--project-id`), stop it, edit genesis.json, and do a state reset with `--reset-state`. For example:
+Run a persistent node:
+
+```shell
+$ spinarch --project-id my-project
+```
+
+Stop SpinArch (Ctrl-C) after node is running and then edit `genesis.json`.
+
+```shell
+$ nano ~/.spinarch/my-project/config/genesis.json
+```
+
+Look for `"max_wasm_code_size"` and change the value to higher number like `12288000`. After that, run the same project with `--reset-state` to reset the blockchain.
+
+```shell
+$ spinarch --project-id my-project --reset-state
 ```
