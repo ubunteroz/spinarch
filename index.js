@@ -39,14 +39,14 @@ program.parse();
         process.exit(1);
     }
 
-    // BLESSED TUI
+    //- Start: Blessed TUI
     const screen = blessed.screen({
         smartCSR: true,
         dockBorders: true,
         fullUnicode: true,
         title: `🥬 ${package.name} ${package.version} - ${project_id}`
     });
-    // APPLICATION LOG
+    // Application log
     const box_top_left = blessed.log({
         parent: screen,
         top: 0,
@@ -68,7 +68,7 @@ program.parse();
             }
         }
     });
-    // DOCKER LOG
+    // Docker log
     const box_top_right = blessed.log({
         parent: screen,
         top: 0,
@@ -90,7 +90,7 @@ program.parse();
             }
         }
     });
-    // ACCOUNT LOG
+    // Accounts log
     const box_bottom = blessed.log({
         parent: screen,
         top: '50%',
@@ -112,7 +112,7 @@ program.parse();
             }
         }
     });
-    // LOGGER
+    // Log helper
     const logger = {
         app: function(string) {
             box_top_left.log(string);
@@ -128,11 +128,7 @@ program.parse();
         }
     };
 
-    logger.app('<Press s to enable/disable text selection>')
-    logger.docker(await fs.readFile('./spinach.txt', 'utf8')); // 🥬
-    box_bottom.focus();
-    screen.render();
-
+    // Hotkey - text selection
     let is_selection_enabled = false;
     screen.key('s', function() {
         is_selection_enabled = !is_selection_enabled;
@@ -145,7 +141,7 @@ program.parse();
             logger.app('> Text selection is now disabled');
         }
     });
-
+    // Hotkey - terminate
     let is_stopped = false;
     screen.key(['C-c'], function() {
         if (is_stopped) return;
@@ -153,12 +149,18 @@ program.parse();
         is_stopped = true;
     });
 
+    // Handle SIGINT
     process.on('SIGINT', function() {
         setTimeout(function() {
             screen.destroy();
         }, 2000);
     });
-    //- END: BLESSED TUI
+
+    logger.app('<Press S to toggle text selection>');
+    logger.docker(await fs.readFile('./spinach.txt', 'utf8')); // 🥬
+    box_bottom.focus();
+    screen.render();
+    //- End: Blessed TUI
 
     const Docker = require('./docker');
     const docker = new Docker({
