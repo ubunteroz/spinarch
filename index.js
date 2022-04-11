@@ -4,7 +4,7 @@ const fs_async = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const process = require('node:process');
-const blessed = require('blessed');
+const blessed = require('neo-blessed');
 const {
     program,
     Option
