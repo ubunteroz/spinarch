@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs/promises');
+const fs_async = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const process = require('node:process');
@@ -32,12 +32,29 @@ program.parse();
     const options = program.opts();
     const project_id = options.projectId ? options.projectId.replace(/[^0-9a-zA-Z-_]/g, '') : docker_names.getRandomName();
     const project_dir = path.resolve(os.homedir(), '.spinarch', project_id);
+    const snapshot_dir = path.resolve(project_dir, '..', '.snapshots');
     const is_persistent = !!options.projectId;
 
     if (options.numAccounts < 1) {
         console.error('Number of accounts to generate must be greater than 0');
         process.exit(1);
     }
+
+    //- Start: Choose snapshot
+    await mkdirp(snapshot_dir);
+    const snapshots = (await fs_async.readdir(snapshot_dir))
+        .filter(function(snapshot) {
+            return snapshot.startsWith(project_id + '_') && snapshot.endsWith('.tar');
+        })
+        .sort()
+        .reverse()
+        .slice(0, 10); // Return max 10 snapshots
+
+    let selected_snapshot = 'CURRENT'; // CURRENT is current state
+    if (snapshots.length > 0) {
+        // FIXME: Use blessed to display snapshot selector
+    }
+    //- End: Choose snapshot
 
     //- Start: Blessed TUI
     const screen = blessed.screen({
@@ -201,6 +218,11 @@ program.parse();
     } else {
         logger.app(`Starting with persistent state... (${project_dir})`);
         await mkdirp(project_dir);
+
+        if (selected_snapshot !== 'CURRENT') {
+            logger.app(`Restoring snapshot... (${selected_snapshot})`);
+            await archwayd.restore(selected_snapshot);
+        }
     }
 
     if (!(await docker.image_exists()) || options.updateImage) {

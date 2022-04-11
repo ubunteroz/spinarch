@@ -254,6 +254,49 @@ class Archwayd {
 
         await this.start_node(); // Resume node
     }
+
+    async restore(snapshot_name) {
+        if (!this.is_persistent) return;
+
+        try {
+            const snapshot_path = path.resolve(this.project_dir, '..', '.snapshots');
+
+            const docker = this.docker;
+            const logger = this.logger;
+            const project_dir = this.project_dir;
+            await new Promise(function(resolve, reject) {
+                docker.run('alpine:latest', [
+                        'sh', '-c',
+                        `rm -r /state/* && cd / && tar xvf /ss/${snapshot_name}`
+                    ], undefined, {
+                        NetworkDisabled: true,
+                        HostConfig: {
+                            AutoRemove: true,
+                            Mounts: [{
+                                source: snapshot_path,
+                                target: '/ss',
+                                type: 'bind'
+                            }, {
+                                source: project_dir,
+                                target: '/state',
+                                type: 'bind'
+                            }]
+                        }
+                    }, function(err) {
+                        if (err) return reject(err);
+                        resolve();
+                    })
+                    .on('stream', function(stream) {
+                        stream.on('data', function(data) {
+                            logger.docker(data.toString().trim());
+                        });
+                    });
+            });
+            this.logger.app(`Snapshot restored to ${this.project_dir}`);
+        } catch (err) {
+            this.logger.app('Failed to restore snapshot');
+        }
+    }
 }
 
 module.exports = Archwayd;
