@@ -12,7 +12,7 @@ class Docker {
         const images = await this.docker.listImages();
         const image_name = this.image;
         const image = images.find(function(image) {
-            return image.RepoTags[0] === image_name;
+            return image.RepoTags && image.RepoTags[0] === image_name;
         });
         return !!image;
     }
@@ -30,7 +30,7 @@ class Docker {
                 }
 
                 stream.on('data', function(data) {
-                    logger.docker(data.toString());
+                    logger.docker(data.toString().trim());
                 });
 
                 stream.on('end', function() {
