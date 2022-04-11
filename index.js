@@ -211,7 +211,7 @@ program.parse();
     //- Start: Application flow
 
     logger.app('<Press Ctrl-T to toggle text selection>');
-    logger.docker(await fs_async.readFile('./spinach.txt', 'utf8')); // 🥬
+    logger.docker(await fs_async.readFile(path.resolve(__dirname, 'spinach.txt'), 'utf8')); // 🥬
 
     if (!is_persistent) {
         logger.app(`Starting with temporary state... (set --project-id to enable persistent state)`);
