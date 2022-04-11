@@ -211,6 +211,8 @@ class Archwayd {
         if (!this.is_persistent) return;
 
         try {
+            this.logger.app('Taking snapshot...');
+
             await this.stop_node();
 
             const snapshot_path = path.resolve(this.project_dir, '..', '.snapshots');

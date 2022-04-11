@@ -145,10 +145,7 @@ program.parse();
         }
     };
 
-    logger.app('<Press S to toggle text selection>');
-    logger.docker(await fs.readFile('./spinach.txt', 'utf8')); // 🥬
     box_bottom.focus();
-    screen.render();
     //- End: Blessed TUI
 
     const Docker = require('./docker');
@@ -169,7 +166,7 @@ program.parse();
 
     // Hotkey - text selection
     let is_selection_enabled = false;
-    screen.key('s', function() {
+    screen.key(['C-t'], function() {
         is_selection_enabled = !is_selection_enabled;
 
         if (is_selection_enabled) {
@@ -211,7 +208,11 @@ program.parse();
         process.exit(0);
     });
 
-    // Application flow
+    //- Start: Application flow
+
+    logger.app('<Press Ctrl-T to toggle text selection>');
+    logger.docker(await fs_async.readFile('./spinach.txt', 'utf8')); // 🥬
+
     if (!is_persistent) {
         logger.app(`Starting with temporary state... (set --project-id to enable persistent state)`);
         await docker.remove_volume();
@@ -232,4 +233,5 @@ program.parse();
     await archwayd.init_genesis();
     await archwayd.generate_accounts(options.numAccounts, options.balance);
     await archwayd.start_node();
+    //- End: Application flow
 })();
