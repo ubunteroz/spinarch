@@ -229,6 +229,9 @@ program.parse();
     if (!(await docker.image_exists()) || options.updateImage) {
         await docker.pull_image();
     }
+    if (!(await docker.image_exists('alpine:latest'))) {
+        await docker.pull_image('alpine:latest');
+    }
     await archwayd.load_config();
     await archwayd.init_genesis();
     await archwayd.generate_accounts(options.numAccounts, options.balance);

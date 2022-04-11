@@ -8,23 +8,23 @@ class Docker {
         this.volume = 'vol_spinarch';
     }
 
-    async image_exists() {
+    async image_exists(image_name) {
         const images = await this.docker.listImages();
-        const image_name = this.image;
+        const _image_name = image_name || this.image;
         const image = images.find(function(image) {
-            return image.RepoTags && image.RepoTags[0] === image_name;
+            return image.RepoTags && image.RepoTags[0] === _image_name;
         });
         return !!image;
     }
 
-    async pull_image() {
+    async pull_image(image_name) {
         const logger = this.logger;
         const docker = this.docker;
-        const image = this.image;
+        const _image_name = image_name || this.image;
 
-        this.logger.app(`Pulling image ${this.image}...`);
+        this.logger.app(`Pulling image ${_image_name}...`);
         return new Promise(function(resolve, reject) {
-            return docker.pull(image, function(err, stream) {
+            return docker.pull(_image_name, function(err, stream) {
                 if (err) {
                     return reject(err);
                 }
