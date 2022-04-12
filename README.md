@@ -1,5 +1,7 @@
 # 🥬 SpinArch
 
+[![asciicast](https://asciinema.org/a/486636.svg)](https://asciinema.org/a/486636)
+
 ## About
 
 SpinArch (c) 2022, Surya Handika Putratama <ubunteroz@gmail.com>
