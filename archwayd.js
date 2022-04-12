@@ -175,7 +175,7 @@ class Archwayd {
         }
 
         logger.app(`Starting node... (RPC on 127.0.0.1:26657)`);
-        if (this.is_apple_silicon && this.is_persistent) {
+        if ((this.is_apple_silicon && process.env.USE_NATIVE) && this.is_persistent) {
             const cp = child_process.spawn(`${this.bin_dir}/archwayd-darwin-arm64`, [
                 'start',
                 '--moniker', this.project_id,
