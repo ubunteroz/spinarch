@@ -1,6 +1,8 @@
+const child_process = require('node:child_process');
 const fs = require('node:fs');
 const fs_async = require('node:fs/promises');
 const path = require('node:path');
+const process = require('node:process');
 const date_fns = require('date-fns');
 const mkdirp = require('mkdirp');
 
@@ -31,6 +33,10 @@ class Archwayd {
                 }]
             }
         };
+
+        this.bin_dir = path.resolve(__dirname, 'bin');
+        this.is_apple_silicon = process.platform === 'darwin' && process.arch === 'arm64';
+        this.pid = null;
 
         if (this.is_persistent) {
             this.docker_opts.HostConfig.Mounts = [{
@@ -169,30 +175,61 @@ class Archwayd {
         }
 
         logger.app(`Starting node... (RPC on 127.0.0.1:26657)`);
-        const docker_opts = {
-            ...this.docker_opts,
-            name: container_name,
-            NetworkDisabled: false
-        };
-        docker_opts.HostConfig.PortBindings = {
-            '26657/tcp': [{
-                HostIp: '127.0.0.1',
-                HostPort: '26657'
-            }]
-        };
-        docker.run(this.image, [
+        if (this.is_apple_silicon && this.is_persistent) {
+            const cp = child_process.spawn(`${this.bin_dir}/archwayd-darwin-arm64`, [
                 'start',
                 '--moniker', this.project_id,
                 '--minimum-gas-prices', '0stake',
-                '--rpc.laddr', 'tcp://0.0.0.0:26657'
-            ], undefined, docker_opts, function(err) {
-                if (err) throw err;
-            })
-            .on('stream', function(stream) {
-                stream.on('data', function(data) {
-                    logger.docker(data.toString().trim());
-                });
+                '--rpc.laddr', 'tcp://127.0.0.1:26657',
+                '--home', this.project_dir
+            ]);
+
+            this.pid = cp.pid;
+
+            cp.stdout.on('data', function(data) {
+                logger.docker(data.toString().trim());
             });
+
+            cp.stderr.on('data', function(data) {
+                logger.docker(data.toString().trim());
+            });
+
+            cp.on('error', function(err) {
+                logger.app('Failed to spawn child process');
+                logger.docker(err);
+            });
+
+            cp.on('close', function(code) {
+                logger.app(`Child process exited with code ${code}`);
+                this.pid = null;
+            });
+        } else {
+            const docker_opts = {
+                ...this.docker_opts,
+                name: container_name,
+                NetworkDisabled: false
+            };
+            docker_opts.HostConfig.PortBindings = {
+                '26657/tcp': [{
+                    HostIp: '127.0.0.1',
+                    HostPort: '26657'
+                }]
+            };
+
+            docker.run(this.image, [
+                    'start',
+                    '--moniker', this.project_id,
+                    '--minimum-gas-prices', '0stake',
+                    '--rpc.laddr', 'tcp://0.0.0.0:26657'
+                ], undefined, docker_opts, function(err) {
+                    if (err) throw err;
+                })
+                .on('stream', function(stream) {
+                    stream.on('data', function(data) {
+                        logger.docker(data.toString().trim());
+                    });
+                });
+        }
 
         if (this.is_persistent) {
             logger.app('<Press Ctrl-S to take snapshot, Ctrl-C to stop node>');
@@ -202,6 +239,11 @@ class Archwayd {
     }
 
     async stop_node() {
+        if (this.pid) {
+            process.kill(this.pid, 'SIGINT');
+            return;
+        }
+
         const container = this.docker.getContainer('spinarch_archwayd');
         await container.stop();
         if (!this.is_persistent) await this.Docker.remove_volume();
