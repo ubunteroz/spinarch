@@ -4,6 +4,8 @@ const fs_async = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const process = require('node:process');
+const readline = require('node:readline');
+const util = require('node:util');
 const blessed = require('neo-blessed');
 const {
     program,
@@ -52,7 +54,32 @@ program.parse();
 
     let selected_snapshot = 'CURRENT'; // CURRENT is current state
     if (snapshots.length > 0) {
-        // FIXME: Use blessed to display snapshot selector
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+
+        console.log('Choose snapshot to restore from:');
+        console.log('[0] Last saved state');
+        snapshots.forEach(function(snapshot, idx) {
+            console.log(`[${idx+1}] ${snapshot}`);
+        });
+
+        try {
+            const question = util.promisify(rl.question).bind(rl);
+            const answer = parseInt(await question(`\nChoose snapshot [0-${snapshots.length}]: `));
+
+            if (answer > 0 && answer <= snapshots.length) {
+                selected_snapshot = snapshots[answer - 1];
+                rl.close();
+            } else {
+                console.log('Invalid choice');
+                process.exit(1);
+            }
+        } catch (err) {
+            console.warn('Bye');
+            process.exit(1);
+        }
     }
     //- End: Choose snapshot
 
