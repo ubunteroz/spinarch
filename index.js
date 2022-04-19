@@ -56,21 +56,27 @@ program.parse();
     if (snapshots.length > 0) {
         const rl = readline.createInterface({
             input: process.stdin,
-            output: process.stdout
+            output: null
         });
 
         console.log('Choose snapshot to restore from:');
         console.log('[0] Last saved state');
         snapshots.forEach(function(snapshot, idx) {
-            console.log(`[${idx+1}] ${snapshot}`);
+            console.log(`[${idx+1}] ${snapshot}`.replace('.tar', ''));
         });
 
         try {
+            process.stdout.write(`\nChoose snapshot [0-${snapshots.length}] (default: 0): `);
             const question = util.promisify(rl.question).bind(rl);
-            const answer = parseInt(await question(`\nChoose snapshot [0-${snapshots.length}]: `));
+            const answer = parseInt(await question(''));
 
-            if (answer > 0 && answer <= snapshots.length) {
-                selected_snapshot = snapshots[answer - 1];
+            if (!answer || (answer > 0 && answer <= snapshots.length)) {
+                if (!answer) {
+                    selected_snapshot = 'CURRENT';
+                } else {
+                    selected_snapshot = snapshots[answer - 1];
+                }
+
                 rl.close();
             } else {
                 console.log('Invalid choice');

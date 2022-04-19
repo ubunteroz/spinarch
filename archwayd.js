@@ -291,7 +291,7 @@ class Archwayd {
                         });
                     });
             });
-            this.logger.app(`\nSnapshot saved to ${snapshot_path}/${snapshot_name}.tar\n`);
+            this.logger.app(`\n> Snapshot saved to ${snapshot_path}/${snapshot_name}.tar\n`);
         } catch (err) {
             this.logger.app('Failed to take snapshot');
         }
@@ -336,7 +336,7 @@ class Archwayd {
                         });
                     });
             });
-            this.logger.app(`Snapshot restored to ${this.project_dir}`);
+            this.logger.app(`\n> Snapshot restored to ${this.project_dir}\n`);
         } catch (err) {
             this.logger.app('Failed to restore snapshot');
         }
