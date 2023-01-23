@@ -19,7 +19,7 @@
     "homepage": "https://github.com/ubunteroz/spinarch#readme",
     "bin": "./index.js",
     "dependencies": {
-        "commander": "^9.4.1",
+        "commander": "^9.5.0",
         "date-fns": "^2.29.3",
         "docker-names": "^1.2.1",
         "dockerode": "^3.3.4",
